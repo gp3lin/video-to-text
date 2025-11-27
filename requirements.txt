@@ -1,23 +1,23 @@
 # Video/Ses İşleme
-moviepy==1.0.3
-pydub==0.25.1
+moviepy
+pydub
 
 # Speech-to-Text (Whisper)
-openai-whisper==20231117
+openai-whisper
 
 # Speaker Diarization
-pyannote.audio==3.1.1
-torch==2.1.0
-torchaudio==2.1.0
+pyannote.audio
+torch
+torchaudio
 
 # Web Arayüzü
-streamlit==1.28.0
+streamlit
 
 # Yardımcı Kütüphaneler
-numpy==1.24.3
-pandas==2.0.3
-python-dotenv==1.0.0
-tqdm==4.66.1
+numpy
+pandas
+python-dotenv
+tqdm
 
 # Logging ve Debugging
-loguru==0.7.2
+loguru
