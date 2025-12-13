@@ -31,13 +31,12 @@ env.bak/
 venv.bak/
 
 # AI Models (büyük dosyalar - Git'e ekleme!)
-models/*.pt
-models/*.pth
-models/*.bin
-models/*.onnx
+models/
+!models/.gitkeep
 *.bin
 *.pt
 *.pth
+*.onnx
 
 # Geçici ve İşlem Dosyaları
 uploads/*
@@ -48,6 +47,7 @@ logs/*
 !logs/.gitkeep
 temp/
 *.tmp
+test_klasor/
 
 # Environment Variables (GÜVENLİK - Token'ları Git'e ekleme!)
 .env
@@ -61,6 +61,10 @@ temp/
 *.swo
 *~
 .DS_Store
+
+# Claude Code
+.claude/
+.claude/**
 
 # OS
 Thumbs.db

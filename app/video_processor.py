@@ -10,7 +10,7 @@ Bu modül video dosyalarından ses çıkarır ve işler.
 from pathlib import Path
 from typing import Union
 from loguru import logger
-from moviepy.editor import VideoFileClip
+from moviepy.editor import VideoFileClip, AudioFileClip
 import config.settings as settings
 
 
@@ -151,8 +151,6 @@ def get_audio_duration(audio_path: Union[str, Path]) -> float:
         >>> print(f"{duration:.2f} saniye")
         125.50 saniye
     """
-    from moviepy.editor import AudioFileClip
-
     audio_path = Path(audio_path)
 
     if not audio_path.exists():

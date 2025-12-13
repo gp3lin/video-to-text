@@ -3,7 +3,8 @@ moviepy
 pydub
 
 # Speech-to-Text (Whisper)
-openai-whisper
+# openai-whisper  # Yavaş - faster-whisper ile değiştirildi
+faster-whisper  # 4-5x daha hızlı, aynı doğruluk
 
 # Speaker Diarization
 pyannote.audio

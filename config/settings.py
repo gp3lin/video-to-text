@@ -17,6 +17,30 @@ from dotenv import load_dotenv
 # değişkenleri environment variables olarak yükler
 load_dotenv()
 
+# Offline mod için environment variables ayarla
+# Bu sayede modeller sadece yerel dizinden yüklenir, internet kullanılmaz
+MODEL_CACHE_DIR = str(Path(__file__).parent.parent / "models")
+
+# Hugging Face cache dizinlerini ayarla
+os.environ.setdefault("HF_HOME", MODEL_CACHE_DIR)
+os.environ.setdefault("TRANSFORMERS_CACHE", MODEL_CACHE_DIR)
+os.environ.setdefault("HF_DATASETS_CACHE", MODEL_CACHE_DIR)
+os.environ.setdefault("HUGGINGFACE_HUB_CACHE", MODEL_CACHE_DIR)
+
+# Offline mod ayarları (.env dosyasından okur, yoksa varsayılan değerleri kullanır)
+# "1" değeri offline modu aktif eder, "0" veya boş bırakılırsa online mod aktif olur
+if os.getenv("HF_HUB_OFFLINE", "0") == "1":
+    os.environ["HF_HUB_OFFLINE"] = "1"
+if os.getenv("TRANSFORMERS_OFFLINE", "0") == "1":
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+if os.getenv("HF_DATASETS_OFFLINE", "0") == "1":
+    os.environ["HF_DATASETS_OFFLINE"] = "1"
+
+# Symlink devre dışı bırakma (Windows izin hatası için)
+# Windows'ta symlink oluşturma yetkisi yoksa bu ayar symlink yerine dosya kopyası yapar
+if os.getenv("HF_HUB_DISABLE_SYMLINKS", "0") == "1":
+    os.environ["HF_HUB_DISABLE_SYMLINKS"] = "1"
+
 # Proje Ana Dizini
 # __file__ bu dosyanın (settings.py) tam yolunu verir
 # .parent bir üst klasöre çıkar (config/ -> proje root)
@@ -36,15 +60,28 @@ LOG_DIR = BASE_DIR / "logs"              # Log dosyaları
 for directory in [UPLOAD_DIR, OUTPUT_DIR, MODEL_DIR, LOG_DIR]:
     directory.mkdir(exist_ok=True)
 
-# Whisper (Speech-to-Text) Ayarları
+# faster-whisper (Speech-to-Text) Ayarları
 # os.getenv("KEY", "default") -> .env'den KEY'i oku, yoksa default kullan
-WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL", "small")
-# Model boyutları: tiny, base, small, medium, large
-# small = 244MB, iyi performans/doğruluk dengesi
+WHISPER_MODEL_SIZE = os.getenv("WHISPER_MODEL", "large-v3-turbo")
+# Model boyutları: tiny, base, small, medium, large-v3, large-v3-turbo
+# large-v3-turbo = 809MB, en iyi doğruluk ve hız dengesi (ÖNERİLEN)
+# large-v3 = 1550MB, en yüksek doğruluk (yavaş)
+# medium = 769MB, iyi doğruluk
+# small = 244MB, hızlı ama düşük doğruluk
 
 WHISPER_LANGUAGE = os.getenv("LANGUAGE", "tr")
 # Dil kodu: tr=Türkçe, en=İngilizce
 # Dil belirtmek Whisper'ın doğruluğunu artırır
+
+# faster-whisper Optimizasyon Ayarları
+WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
+# Device: "cpu", "cuda", "auto"
+# CUDA varsa GPU kullanmak için "cuda" veya "auto"
+
+WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
+# Compute type: "float32", "float16", "int8", "int8_float16"
+# CPU için: "int8" (önerilen - 2x hızlı)
+# GPU için: "float16" veya "int8_float16" (önerilen)
 
 # Pyannote (Speaker Diarization) Ayarları
 HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN", "")

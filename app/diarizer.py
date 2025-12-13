@@ -83,7 +83,8 @@ class SpeakerDiarizer:
 
     def load_model(self):
         """
-        pyannote.audio diarization pipeline'ını yükler.
+        pyannote.audio 
+          pipeline'ını yükler.
 
         İlk çalıştırmada:
         - Model Hugging Face'den indirilir (~300MB)
@@ -108,6 +109,9 @@ class SpeakerDiarizer:
             #
             # "pyannote/speaker-diarization-3.1":
             # pyannote.audio'nun en son ve en iyi modeli
+            #
+            # NOT: Offline mod environment variable'lar ile kontrol edilir
+            # (HF_HUB_OFFLINE=1, TRANSFORMERS_OFFLINE=1)
             self.pipeline = Pipeline.from_pretrained(
                 "pyannote/speaker-diarization-3.1",
 
