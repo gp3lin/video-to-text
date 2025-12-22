@@ -113,7 +113,10 @@ def process_video(
     language: str,
     num_speakers: int = None,
     output_path: Path = None,
-    export_text: bool = True
+    export_text: bool = True,
+    analyze: bool = False,
+    ai_model: str = 'qwen3:4b',
+    analyses: list = None
 ) -> dict:
     """
     Video dosyasını işle (ana pipeline).
@@ -125,6 +128,9 @@ def process_video(
         num_speakers: Konuşmacı sayısı (opsiyonel)
         output_path: Çıktı JSON dosyası yolu
         export_text: Text dosyası da oluştur mu?
+        analyze: AI analizi yap mı? (Faz 3)
+        ai_model: Ollama model adı (Faz 3)
+        analyses: Hangi analizler yapılacak (Faz 3)
 
     Returns:
         dict: İşlem sonucu
@@ -132,7 +138,7 @@ def process_video(
     Raises:
         Exception: İşlem hatası
     """
-    total_steps = 4
+    total_steps = 5 if analyze else 4
     start_time = time.time()
 
     # ADIM 1: Video Validasyonu ve Ses Çıkarma
@@ -178,15 +184,24 @@ def process_video(
     logger.success(f"Transcription tamamlandı: {word_count} kelime")
 
     # ADIM 3: Konuşmacı Ayırma (Speaker Diarization)
-    print_progress(3, total_steps, "Konuşmacılar ayırılıyor...")
-    logger.info("Speaker diarization başlıyor...")
+    print_progress(3, total_steps, "Konuşmacılar ayırılıyor (gelişmiş parametrelerle)...")
+    logger.info("Speaker diarization başlıyor (optimized parameters)...")
 
     diarizer = SpeakerDiarizer()
     diarizer.load_model()
 
+    # Gelişmiş diarization parametreleri:
+    # - min_duration=0.5: Çok kısa segment'leri filtrele (gürültü azaltma) ✅ ÇALIŞIYOR
+    # - Segment birleştirme: Yakın segment'leri birleştir (max_gap=0.5s) ✅ ÇALIŞIYOR
+    #
+    # NOT: Diğer parametreler (onset, offset, clustering vb.) pyannote 3.1 tarafından
+    # apply() metodunda desteklenmiyor. Bu parametreler pipeline instantiation
+    # sırasında ayarlanmalı (gelecek güncellemede eklenecek).
     diarization = diarizer.diarize(
         audio_path,
-        num_speakers=num_speakers if num_speakers > 0 else None
+        num_speakers=num_speakers if num_speakers > 0 else None,
+        min_duration=0.5  # Minimum segment süresi (gürültü filtreleme)
+        # Diğer parametreler şimdilik kullanılmıyor (pyannote 3.1 limitasyonu)
     )
 
     # İstatistik
@@ -207,6 +222,53 @@ def process_video(
             "audio_duration": round(audio_duration, 2)
         }
     )
+
+    # ADIM 5: AI Analizi (Opsiyonel - Faz 3)
+    if analyze:
+        print_progress(5, total_steps, "AI analizi yapiliyor (Ollama)...")
+        logger.info("AI analizi basliyor...")
+
+        try:
+            from app.analyzer import InterviewAnalyzer
+
+            # Analyzer oluştur
+            analyzer = InterviewAnalyzer(
+                model_name=ai_model,
+                temperature=0.3,
+                enabled_analyses=analyses if analyses else ['evaluation', 'summary', 'sentiment', 'qa']
+            )
+
+            # Hangi analizler çalışacak?
+            if 'all' in analyses:
+                analyses_to_run = ['evaluation', 'summary', 'sentiment', 'qa']
+            else:
+                analyses_to_run = analyses
+
+            logger.info(f"Analizler: {', '.join(analyses_to_run)}")
+
+            # Analizi çalıştır
+            analysis_result = analyzer.analyze(result, analysis_types=analyses_to_run)
+
+            # Sonucu result'a ekle
+            result['analysis'] = analysis_result
+
+            logger.success(f"AI analizi tamamlandi: {analysis_result['metadata']['status']}")
+
+            # Markdown rapor oluştur
+            try:
+                from app.report_generator import ReportGenerator
+
+                report_path = output_path.with_suffix('.md') if output_path else settings.OUTPUT_DIR / f"{video_path.stem}_report.md"
+                ReportGenerator.create_report(result, report_path)
+                logger.success(f"Markdown rapor olusturuldu: {report_path}")
+
+            except Exception as rep_error:
+                logger.error(f"Rapor olusturulamadi: {rep_error}")
+
+        except Exception as e:
+            logger.error(f"AI analizi basarisiz: {e}")
+            logger.warning("Analiz olmadan devam ediliyor...")
+            # Analiz başarısız olsa bile devam et
 
     # JSON kaydet
     if output_path is None:
@@ -362,10 +424,41 @@ Model boyutları (faster-whisper):
         help='Detaylı log çıktısı (DEBUG seviyesi)'
     )
 
+    # AI Analizi argümanları (Faz 3)
+    analysis_group = parser.add_argument_group('AI Analizi (Ollama - Opsiyonel)')
+
+    analysis_group.add_argument(
+        '--analyze',
+        action='store_true',
+        help='AI analizi yap (Ollama qwen3:4b gerektirir)'
+    )
+
+    analysis_group.add_argument(
+        '--ai-model',
+        type=str,
+        default='qwen3:4b',
+        help='Ollama model adı (default: qwen3:4b)'
+    )
+
+    analysis_group.add_argument(
+        '--analyses',
+        nargs='+',
+        choices=['all', 'summary', 'sentiment', 'qa', 'evaluation'],
+        default=['all'],
+        help='Yapılacak analiz tipleri (default: all)'
+    )
+
+    analysis_group.add_argument(
+        '--skip-analysis',
+        nargs='+',
+        choices=['summary', 'sentiment', 'qa', 'evaluation'],
+        help='Atlanacak analiz tipleri'
+    )
+
     parser.add_argument(
         '--version',
         action='version',
-        version='%(prog)s 1.0.0 (Faz 2 - Core Modules)'
+        version='%(prog)s 2.0.0 (Faz 3 - AI Analysis)'
     )
 
     # Argümanları parse et
@@ -388,6 +481,11 @@ Model boyutları (faster-whisper):
     output_path = Path(args.output) if args.output else None
 
     try:
+        # Analiz tiplerini belirle
+        analyses_to_run = args.analyses
+        if args.skip_analysis:
+            analyses_to_run = [a for a in analyses_to_run if a not in args.skip_analysis]
+
         # Video işle
         result = process_video(
             video_path=video_path,
@@ -395,7 +493,10 @@ Model boyutları (faster-whisper):
             language=args.language,
             num_speakers=args.num_speakers,
             output_path=output_path,
-            export_text=not args.no_text
+            export_text=not args.no_text,
+            analyze=args.analyze,
+            ai_model=args.ai_model,
+            analyses=analyses_to_run
         )
 
         # Özet göster

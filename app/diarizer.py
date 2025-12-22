@@ -149,10 +149,17 @@ class SpeakerDiarizer:
         audio_path: Union[str, Path],
         num_speakers: Optional[int] = None,
         min_speakers: Optional[int] = None,
-        max_speakers: Optional[int] = None
+        max_speakers: Optional[int] = None,
+        # Yeni parametreler: Speaker diarization iyileştirmeleri
+        min_duration: float = 0.5,  # Minimum segment süresi (saniye)
+        segmentation_onset: float = 0.5,  # Konuşma başlangıç hassasiyeti (0-1)
+        segmentation_offset: float = 0.5,  # Konuşma bitiş hassasiyeti (0-1)
+        clustering_threshold: Optional[float] = None,  # Clustering eşik değeri
+        embedding_batch_size: int = 32,  # GPU batch size (performans)
+        embedding_exclude_overlap: bool = True  # Üst üste konuşmaları hariç tut
     ) -> List[Dict]:
         """
-        Ses dosyasındaki konuşmacıları ayırır.
+        Ses dosyasındaki konuşmacıları ayırır (gelişmiş parametrelerle).
 
         Args:
             audio_path: Ses dosyasının yolu (.wav, .mp3 vb.)
@@ -166,6 +173,34 @@ class SpeakerDiarizer:
 
             max_speakers: Maksimum konuşmacı sayısı
                 Örnek: 10 (panel tartışması)
+
+            min_duration: Minimum segment süresi (varsayılan: 0.5 saniye)
+                Daha kısa segment'ler filtrelenir (gürültü azaltma)
+                Önerilen: 0.3-1.0 arası
+
+            segmentation_onset: (KULLANILMIYOR - gelecek için rezerve)
+                Konuşma başlangıç hassasiyeti
+                NOT: pyannote 3.1 bu parametreyi apply() metodunda desteklemiyor
+
+            segmentation_offset: (KULLANILMIYOR - gelecek için rezerve)
+                Konuşma bitiş hassasiyeti
+                NOT: pyannote 3.1 bu parametreyi apply() metodunda desteklemiyor
+
+            clustering_threshold: (KULLANILMIYOR - gelecek için rezerve)
+                Clustering eşik değeri
+                NOT: pyannote 3.1 bu parametreyi apply() metodunda desteklemiyor
+
+            embedding_batch_size: (KULLANILMIYOR - gelecek için rezerve)
+                GPU batch boyutu
+                NOT: pyannote 3.1 bu parametreyi apply() metodunda desteklemiyor
+
+            embedding_exclude_overlap: (KULLANILMIYOR - gelecek için rezerve)
+                Üst üste konuşmaları hariç tut
+                NOT: pyannote 3.1 bu parametreyi apply() metodunda desteklemiyor
+
+            ** ÖNEMLİ: Yukarıdaki parametreler şu anda kullanılmıyor **
+            ** Sadece min_duration ile post-processing yapılıyor **
+            ** İyileştirme: min_duration filtreleme + segment birleştirme **
 
         Returns:
             List[Dict]: Konuşmacı zaman damgaları
@@ -225,6 +260,19 @@ class SpeakerDiarizer:
                 params["max_speakers"] = max_speakers
             logger.info("Konuşmacı sayısı otomatik tespit edilecek")
 
+        # NOT: pyannote 3.1 pipeline.apply() sadece num_speakers, min_speakers, max_speakers kabul eder
+        # Diğer parametreler (onset, offset, clustering vb.) pipeline instantiation sırasında ayarlanmalı
+        # Şimdilik sadece desteklenen parametreleri kullanıyoruz
+        # İyileştirmeler post-processing ile yapılıyor (min_duration, segment merging)
+
+        logger.debug(f"Diarization parametreleri: {params}")
+        logger.debug(
+            f"Post-processing parametreleri: min_duration={min_duration}, "
+            f"segmentation_onset={segmentation_onset}, segmentation_offset={segmentation_offset}, "
+            f"clustering_threshold={clustering_threshold}, embedding_batch_size={embedding_batch_size}, "
+            f"embedding_exclude_overlap={embedding_exclude_overlap}"
+        )
+
         try:
             # pipeline(audio_path):
             # Ana diarization fonksiyonu
@@ -232,8 +280,11 @@ class SpeakerDiarizer:
             logger.debug("pyannote pipeline çalıştırılıyor...")
             diarization = self.pipeline(str(audio_path), **params)
 
-            # Sonuçları işle
-            segments = self._process_diarization(diarization)
+            # Sonuçları işle (min_duration filtresi ile)
+            segments = self._process_diarization(diarization, min_duration=min_duration)
+
+            # Post-processing: Yakın segment'leri birleştir
+            segments = self._merge_close_segments(segments, max_gap=0.5)
 
             # İstatistikler
             speakers = set(seg["speaker"] for seg in segments)
@@ -250,17 +301,20 @@ class SpeakerDiarizer:
             logger.error(f"Diarization hatası: {str(e)}")
             raise
 
-    def _process_diarization(self, diarization) -> List[Dict]:
+    def _process_diarization(self, diarization, min_duration: float = 0.5) -> List[Dict]:
         """
-        pyannote'un ham diarization sonucunu işler.
+        pyannote'un ham diarization sonucunu işler ve filtreler.
 
         Args:
             diarization: pyannote.audio diarization objesi
+            min_duration: Minimum segment süresi (saniye)
+                Daha kısa segment'ler filtrelenir (gürültü/hata azaltma)
 
         Returns:
-            List[Dict]: İşlenmiş konuşmacı segmentleri
+            List[Dict]: İşlenmiş ve filtrelenmiş konuşmacı segmentleri
         """
         segments = []
+        filtered_count = 0
 
         # diarization.itertracks():
         # Her konuşma parçasını (track) döner
@@ -271,18 +325,91 @@ class SpeakerDiarizer:
             # turn.end: Bitiş zamanı (saniye)
             # speaker: Konuşmacı etiketi (SPEAKER_00, SPEAKER_01, ...)
 
+            duration = turn.end - turn.start
+
+            # Minimum süre kontrolü
+            # Çok kısa segment'ler genellikle gürültü veya hatalı tespit
+            if duration < min_duration:
+                filtered_count += 1
+                logger.debug(
+                    f"Segment filtrelendi (çok kısa): {speaker} "
+                    f"{turn.start:.2f}s-{turn.end:.2f}s ({duration:.2f}s)"
+                )
+                continue
+
             segments.append({
                 "speaker": speaker,
                 "start": round(turn.start, 2),  # 2 ondalık
                 "end": round(turn.end, 2),
-                "duration": round(turn.end - turn.start, 2)
+                "duration": round(duration, 2)
             })
+
+        if filtered_count > 0:
+            logger.info(f"{filtered_count} kısa segment filtrelendi (min_duration: {min_duration}s)")
 
         # Zaman sırasına göre sırala
         # Bazen pyannote sırasız dönebilir
         segments.sort(key=lambda x: x["start"])
 
         return segments
+
+    def _merge_close_segments(self, segments: List[Dict], max_gap: float = 0.5) -> List[Dict]:
+        """
+        Aynı konuşmacının yakın segment'lerini birleştirir.
+
+        Sorun: Pyannote bazen aynı kişinin konuşmasını küçük parçalara bölebiliyor.
+        Örnek: SPEAKER_00 [0-5s], SPEAKER_00 [5.2-10s] → Birleştirilmeli
+
+        Args:
+            segments: İşlenmiş segment listesi
+            max_gap: Maksimum boşluk (saniye)
+                İki segment arası boşluk bundan azsa birleştir
+
+        Returns:
+            List[Dict]: Birleştirilmiş segment listesi
+        """
+        if not segments:
+            return segments
+
+        merged = []
+        current = segments[0].copy()
+
+        for next_seg in segments[1:]:
+            # Aynı konuşmacı mı?
+            same_speaker = current["speaker"] == next_seg["speaker"]
+
+            # Aralarındaki boşluk
+            gap = next_seg["start"] - current["end"]
+
+            # Birleştirme koşulları:
+            # 1. Aynı konuşmacı
+            # 2. Boşluk max_gap'ten küçük (veya negatif = üst üste)
+            if same_speaker and gap <= max_gap:
+                # Birleştir: current segment'i genişlet
+                current["end"] = next_seg["end"]
+                current["duration"] = round(current["end"] - current["start"], 2)
+                logger.debug(
+                    f"Segment birleştirildi: {current['speaker']} "
+                    f"{current['start']:.2f}s-{current['end']:.2f}s "
+                    f"(gap: {gap:.2f}s)"
+                )
+            else:
+                # Birleştirme yok: current'i kaydet, next'i current yap
+                merged.append(current)
+                current = next_seg.copy()
+
+        # Son segment'i ekle
+        merged.append(current)
+
+        initial_count = len(segments)
+        merged_count = len(merged)
+        if merged_count < initial_count:
+            logger.info(
+                f"{initial_count - merged_count} segment birleştirildi "
+                f"({initial_count} → {merged_count})"
+            )
+
+        return merged
 
     def get_speaker_statistics(self, segments: List[Dict]) -> Dict:
         """

@@ -22,3 +22,8 @@ tqdm
 
 # Logging ve Debugging
 loguru
+
+# AI Analizi (Ollama)
+ollama>=0.1.0           # Ollama Python client (local AI)
+markdown2>=2.4.0        # Markdown to HTML conversion
+jinja2>=3.1.0           # Template engine (rapor oluşturma için)
