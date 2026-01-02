@@ -49,6 +49,11 @@ temp/
 *.tmp
 test_klasor/
 
+# Günlük dosyaları (şirket içi bilgiler içerebilir)
+Günlük/
+günlük/
+daily_logs/
+
 # Environment Variables (GÜVENLİK - Token'ları Git'e ekleme!)
 .env
 .env.local
