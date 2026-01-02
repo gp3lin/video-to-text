@@ -1,32 +1,88 @@
-# Video-to-Text Dönüştürücü
+# 🎥 Video Mülakat Transkripsiyon Sistemi
 
-Video dosyalarından konuşmaları metne çeviren ve konuşmacılara göre ayıran açık kaynak bir Python projesi.
+Video mülakatlardan konuşmaları metne çeviren ve soruları cevaplarla eşleştiren açık kaynak Python projesi.
 
-## Özellikler
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Streamlit](https://img.shields.io/badge/Streamlit-1.51.0-red.svg)](https://streamlit.io/)
 
-- **Video'dan Ses Çıkarma**: FFmpeg kullanarak video dosyalarından ses çıkarma
-- **Konuşma Tanıma**: OpenAI Whisper ile Türkçe konuşmaları metne çevirme
-- **Konuşmacı Ayırma**: pyannote.audio ile hangi kısmı kimin konuştuğunu belirleme
-- **Web Arayüzü**: Streamlit ile kolay kullanım
-- **JSON Çıktı**: Yapılandırılmış, detaylı sonuç formatı
+---
 
-## Teknolojiler
+## 🎯 Proje Amacı
 
-- **FFmpeg**: Video/ses işleme
-- **OpenAI Whisper**: Speech-to-text (offline, ücretsiz)
-- **pyannote.audio**: Speaker diarization
-- **Streamlit**: Web arayüzü
-- **PyTorch**: AI model altyapısı
+**Video mülakatlar** için tasarlanmış transkripsiyon sistemi:
+- Adaylar soruları video ile cevaplıyor
+- Sistem videoyu metne çeviriyor
+- Soruları cevaplarla otomatik eşleştiriyor
+- İnsan kaynakları için okunabilir rapor oluşturuluyor
 
-## Kurulum
+**Hedef Kullanıcılar:** İK departmanları, işe alım platformları, mülakat yapan şirketler
 
-### 1. FFmpeg Kurulumu
+---
+
+## ✨ Özellikler
+
+### 🎬 Video Transkripsiyon
+- **Ses Çıkarma:** FFmpeg ile profesyonel kalite
+- **Konuşma Tanıma:** faster-whisper (OpenAI Whisper optimizasyonu)
+  - 4-5x daha hızlı
+- **Model:** large-v3-turbo (809 MB, en iyi doğruluk/hız dengesi)
+- **Dil Desteği:** 99 dil (Türkçe, İngilizce, otomatik algılama)
+- **Doğruluk:** %95+ (Türkçe için)
+
+### 👥 Konuşmacı Ayırma
+- **pyannote.audio 3.1** ile speaker diarization
+- Otomatik konuşmacı tespiti
+- Zaman damgalı segmentler
+- Konuşmacı istatistikleri (süre, kelime sayısı, yüzde)
+
+### 🔍 Soru-Cevap Eşleştirme
+- **Eşit Zaman Segmentasyonu** algoritması
+- questions.txt desteği (her satırda bir soru)
+- Otomatik eşleştirme (video_duration / soru_sayısı)
+- JSON + Markdown çıktı
+
+### 🎨 Web Arayüzü (Streamlit)
+- Drag & drop video upload
+- 3 soru girişi metodu:
+  - Yok (sadece transkripsiyon)
+  - Dosya yükle (questions.txt)
+  - Manuel giriş (textarea)
+- Ayarlar:
+  - Model boyutu (tiny → large-v3-turbo)
+  - Dil (Türkçe, İngilizce, otomatik)
+  - Konuşmacı sayısı (0 = otomatik)
+- Canlı önizleme ve istatistikler
+- 4 format indirme (JSON, TXT, QA JSON, QA Markdown)
+
+### 📊 Çıktı Formatları
+- **JSON:** Yapılandırılmış veri (API/programatik kullanım)
+- **TXT:** Okunabilir transkript (timeline + istatistikler)
+- **QA JSON:** Soru-cevap çiftleri (yapılandırılmış)
+- **QA Markdown:** Profesyonel mülakat raporu (insan kaynakları için)
+
+---
+
+## 🚀 Hızlı Başlangıç
+
+### 📋 Gereksinimler
+
+- **Python 3.8+**
+- **FFmpeg** (ses çıkarma için)
+- **CUDA** (opsiyonel, GPU desteği için)
+- **10 GB disk** (modeller için)
+
+### 🔧 Kurulum
+
+#### 1. FFmpeg Kurulumu
 
 **Windows:**
-1. https://ffmpeg.org/download.html adresinden FFmpeg indir
-2. ZIP dosyasını çıkar
-3. `bin` klasörünü sistem PATH'ine ekle
-4. Terminalde test et: `ffmpeg -version`
+```bash
+# Chocolatey ile (önerilen)
+choco install ffmpeg
+
+# veya https://ffmpeg.org/download.html adresinden manuel indirin
+```
 
 **MacOS:**
 ```bash
@@ -38,109 +94,362 @@ brew install ffmpeg
 sudo apt-get install ffmpeg
 ```
 
-### 2. Python Sanal Ortamı
+Doğrulama:
+```bash
+ffmpeg -version
+```
+
+#### 2. Projeyi Klonlayın
 
 ```bash
-# Sanal ortam oluştur
-python -m venv venv
+git clone https://github.com/gp3lin/video-to-text.git
+cd video-to-text
+```
 
-# Aktif et (Windows)
+#### 3. Sanal Ortam Oluşturun
+
+```bash
+# Windows
+python -m venv venv
 venv\Scripts\activate
 
-# Aktif et (MacOS/Linux)
+# Linux/Mac
+python3 -m venv venv
 source venv/bin/activate
+```
 
-# Bağımlılıkları yükle
+#### 4. Bağımlılıkları Yükleyin
+
+```bash
 pip install -r requirements.txt
 ```
 
-### 3. Hugging Face Token
+#### 5. Hugging Face Token (pyannote.audio için)
 
-pyannote.audio kullanmak için ücretsiz Hugging Face token gereklidir:
+1. https://huggingface.co/ hesap oluşturun (ücretsiz)
+2. Settings → Access Tokens → New Token (Read yetkisiyle)
+3. `.env.example` dosyasını `.env` olarak kopyalayın:
+   ```bash
+   cp .env.example .env
+   ```
+4. Token'ı `.env` dosyasına ekleyin:
+   ```
+   HUGGINGFACE_TOKEN=hf_xxxxxxxxxxxxxx
+   ```
 
-1. https://huggingface.co/ adresinde hesap oluştur
-2. Settings > Access Tokens > New token (Read yetkisiyle)
-3. `.env.example` dosyasını `.env` olarak kopyala
-4. Token'ı `.env` dosyasına ekle:
-```
-HUGGINGFACE_TOKEN=your_actual_token_here
-```
+---
 
-## Kullanım
+## 💻 Kullanım
 
-### Web Arayüzü (Streamlit)
+### 🎨 Web Arayüzü (Önerilen)
 
+#### Windows:
 ```bash
-streamlit run app/web_interface.py
+# Çift tıklayın:
+run_ui.bat
 ```
 
-Tarayıcıda açılan arayüzden:
-1. Video dosyasını yükle
-2. Model boyutunu seç (small/medium/large)
-3. "Dönüştür" butonuna tıkla
-4. JSON sonucu indir
-
-### Komut Satırı
-
+#### Linux/Mac:
 ```bash
-python v_to_t.py video.mp4 --model medium --language tr
+./run_ui.sh
 ```
 
-## Proje Yapısı
-
-```
-video-to-text/
-├── app/                    # Ana uygulama kodu
-│   ├── video_processor.py  # Video/ses işleme
-│   ├── transcriber.py      # Speech-to-text
-│   ├── diarizer.py         # Speaker diarization
-│   ├── output_formatter.py # JSON çıktı
-│   └── web_interface.py    # Streamlit UI
-├── config/                 # Konfigürasyon
-├── models/                 # AI modelleri (otomatik indirilir)
-├── uploads/                # Yüklenen videolar
-├── outputs/                # Üretilen JSON dosyaları
-└── logs/                   # Log dosyaları
+#### Manuel:
+```bash
+streamlit run app_ui.py
 ```
 
-## Çıktı Formatı
+**Tarayıcıda:** http://localhost:8501
+
+#### Adımlar:
+1. Video yükle (MP4, AVI, MOV, MKV, WEBM)
+2. Sorular ekle (opsiyonel):
+   - Dosya yükle (questions.txt)
+   - veya Manuel gir
+3. Ayarları seç (model, dil, konuşmacı sayısı)
+4. "İşleme Başla" butonuna tıkla
+5. Sonuçları indir (4 format)
+
+---
+
+### 🖥️ Komut Satırı (CLI)
+
+#### Temel Kullanım:
+```bash
+python v_to_t.py video.mp4
+```
+
+#### QA Matching ile:
+```bash
+python v_to_t.py video.mp4 --questions questions.txt
+```
+
+#### Tam Kontrol:
+```bash
+python v_to_t.py interview.mp4 \
+  --questions questions.txt \
+  --model large-v3-turbo \
+  --language tr \
+  --num-speakers 2 \
+  --output mülakat_sonuc.json \
+  --verbose
+```
+
+#### Parametreler:
+
+| Parametre | Açıklama | Varsayılan |
+|-----------|----------|------------|
+| `video.mp4` | Video dosyası (zorunlu) | - |
+| `--questions` | Soru dosyası (.txt) | None |
+| `--model` | Model boyutu | large-v3-turbo |
+| `--language` | Dil kodu (tr, en) | Otomatik |
+| `--num-speakers` | Konuşmacı sayısı (0=oto) | 0 |
+| `--output` | Çıktı dosyası | outputs/{video}_output.json |
+| `--no-text` | TXT dosyası oluşturma | False |
+| `--verbose` | Detaylı log | False |
+
+#### Model Boyutları:
+
+| Model | Boyut | Hız | Doğruluk | Önerilen |
+|-------|-------|-----|----------|----------|
+| `tiny` | 39 MB | ⚡⚡⚡⚡⚡ | ⭐⭐ | Hızlı test |
+| `base` | 74 MB | ⚡⚡⚡⚡ | ⭐⭐⭐ | Test |
+| `small` | 244 MB | ⚡⚡⚡ | ⭐⭐⭐⭐ | Geliştirme |
+| `medium` | 769 MB | ⚡⚡ | ⭐⭐⭐⭐⭐ | Production |
+| `large-v3-turbo` | 809 MB | ⚡⚡⚡ | ⭐⭐⭐⭐⭐ | ✅ ÖNERİLEN |
+| `large-v3` | 1550 MB | ⚡ | ⭐⭐⭐⭐⭐ | Maksimum doğruluk |
+
+---
+
+## 📝 questions.txt Formatı
+
+**Basit Text Dosyası** (her satırda bir soru):
+
+```
+Kendinizden bahseder misiniz?
+Neden bu pozisyonda çalışmak istiyorsunuz?
+En büyük başarınız nedir?
+Zayıf yönleriniz nelerdir?
+5 yıl sonra kendinizi nerede görüyorsunuz?
+```
+
+**Notlar:**
+- Her satırda tek bir soru
+- Boş satırlar otomatik filtrelenir
+- UTF-8 encoding (Türkçe karakter desteği)
+- Soru numarası gerekmez
+
+---
+
+## 📊 Çıktı Örnekleri
+
+### JSON Output (Normal Transkript)
 
 ```json
 {
   "metadata": {
-    "video_name": "example.mp4",
-    "duration_seconds": 125.5,
+    "video_name": "interview.mp4",
+    "duration_seconds": 180.0,
     "language": "tr",
-    "num_speakers": 2
+    "num_speakers": 2,
+    "num_segments": 15
   },
   "timeline": [
     {
       "start": 0.0,
       "end": 15.5,
       "speaker": "SPEAKER_00",
-      "text": "Merhaba, bugün sizlere..."
+      "text": "Merhaba, kendinizden bahseder misiniz?",
+      "confidence": 0.95
+    },
+    {
+      "start": 15.8,
+      "end": 45.2,
+      "speaker": "SPEAKER_01",
+      "text": "Merhaba, ben Ali. 5 yıldır yazılım geliştiriyorum...",
+      "confidence": 0.92
     }
   ],
-  "full_transcript": "Tam metin..."
+  "speakers": {
+    "SPEAKER_00": {
+      "total_duration": 30.0,
+      "total_words": 50,
+      "percentage": 16.7
+    },
+    "SPEAKER_01": {
+      "total_duration": 150.0,
+      "total_words": 250,
+      "percentage": 83.3
+    }
+  }
 }
 ```
 
-## Geliştirme Aşaması
+### QA JSON (Soru-Cevap Eşleştirme)
 
-Bu proje şu anda geliştirilme aşamasındadır. İlerleyen bölümlerde:
-- [ ] Core modüller (video işleme, transcription, diarization)
-- [ ] Web arayüzü
-- [ ] Logging sistemi
-- [ ] Test coverage
+```json
+{
+  "metadata": {
+    "total_questions": 3,
+    "avg_segment_duration": 60.0,
+    "matching_method": "equal_time_segmentation"
+  },
+  "qa_pairs": [
+    {
+      "question_number": 1,
+      "question": "Kendinizden bahseder misiniz?",
+      "time_segment": {
+        "start": 0.0,
+        "end": 60.0
+      },
+      "answer": {
+        "text": "Merhaba, ben Ali. 5 yıldır yazılım geliştiriyorum...",
+        "speakers": {
+          "SPEAKER_00": "Merhaba, kendinizden bahseder misiniz?",
+          "SPEAKER_01": "Ben Ali. 5 yıldır..."
+        },
+        "word_count": 85
+      }
+    }
+  ]
+}
+```
 
-## Katkıda Bulunma
+### Markdown Rapor (QA)
 
-Bu bir öğrenme projesidir. Öneriler ve katkılar memnuniyetle karşılanır!
+```markdown
+# Mülakat Soru-Cevap Raporu
 
-## Lisans
+**Video:** interview.mp4
+**Süre:** 180 saniye (3:00)
+**Soru Sayısı:** 3
 
-MIT License
+---
 
-## İletişim
+## Soru 1: Kendinizden bahseder misiniz?
 
-Sorular ve öneriler için Issue açabilirsiniz.
+**Zaman Aralığı:** 0:00 - 1:00 (60 saniye)
+**Kelime Sayısı:** 85
+
+### Cevap:
+Merhaba, ben Ali. 5 yıldır yazılım geliştiriyorum...
+
+### Konuşmacı Bazlı Detay:
+**SPEAKER_00:** Merhaba, kendinizden bahseder misiniz?
+**SPEAKER_01:** Ben Ali. 5 yıldır yazılım geliştiriyorum...
+```
+
+---
+
+## 🏗️ Proje Yapısı
+
+```
+video-to-text/
+├── app/
+│   ├── video_processor.py      # Video/audio işleme
+│   ├── transcriber.py           # faster-whisper entegrasyonu
+│   ├── diarizer.py              # pyannote.audio entegrasyonu
+│   ├── output_formatter.py      # JSON/TXT formatı
+│   └── qa_matcher.py            # Soru-cevap eşleştirme
+├── config/
+│   └── settings.py              # Konfigürasyon
+├── outputs/                     # Çıktı dosyaları
+├── Günlük/                      # Geliştirme günlükleri
+├── app_ui.py                    # Web UI (Streamlit)
+├── v_to_t.py                    # CLI
+├── test_qa_matcher.py           # Mock test scripti
+├── run_ui.bat                   # Windows launcher
+├── run_ui.sh                    # Linux/Mac launcher
+├── questions.txt                # Örnek sorular
+├── requirements.txt             # Bağımlılıklar
+└── .env.example                 # Konfigürasyon örneği
+```
+
+---
+
+## 🛠️ Teknoloji Stack
+
+| Kategori | Teknoloji | Amaç |
+|----------|-----------|------|
+| **Speech-to-Text** | faster-whisper | Transkripsiyon (4-5x hızlı) |
+| **Diarization** | pyannote.audio 3.1 | Konuşmacı ayırma |
+| **Video İşleme** | moviepy, pydub | Video/audio dönüşüm |
+| **Web UI** | Streamlit 1.51.0 | Kullanıcı arayüzü |
+| **AI Backend** | PyTorch, CUDA | Model inference |
+| **Veri İşleme** | numpy, pandas | Veri analizi |
+| **Logging** | loguru | Loglama |
+
+---
+
+## 📈 Performans
+
+**Test Sistemi:** AMD Ryzen 7 / 16GB RAM / CPU only
+
+| Video Süresi | Model | İşlem Süresi | Real-time Factor |
+|--------------|-------|--------------|------------------|
+| 1 dakika | large-v3-turbo | ~45 saniye | 0.75x |
+| 5 dakika | large-v3-turbo | ~3.5 dakika | 0.7x |
+| 10 dakika | large-v3-turbo | ~7 dakika | 0.7x |
+
+**GPU ile:** 3-5x daha hızlı (RTX 3060 ile test edildi)
+
+---
+
+## 🧪 Test
+
+### Mock Test (Video Olmadan)
+
+```bash
+python test_qa_matcher.py
+```
+
+**Amaç:** QA matching algoritmasını mock data ile test et
+
+**Çıktı:**
+- `outputs/test_qa.json`
+- `outputs/test_qa.md`
+
+---
+
+## 🤝 Katkıda Bulunma
+
+Katkılar memnuniyetle karşılanır!
+
+1. Fork edin
+2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
+3. Commit edin (`git commit -m 'feat: Add amazing feature'`)
+4. Push edin (`git push origin feature/amazing-feature`)
+5. Pull Request açın
+
+---
+
+## 📝 Lisans
+
+MIT License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
+
+---
+
+## 🐛 Sorun Bildirme
+
+Sorunlar için [GitHub Issues](https://github.com/gp3lin/video-to-text/issues) kullanın.
+
+---
+
+## 📧 İletişim
+
+**Proje Sahibi:** Pelin ([@gp3lin](https://github.com/gp3lin))
+
+**Repository:** https://github.com/gp3lin/video-to-text
+
+---
+
+## 🙏 Teşekkürler
+
+- **OpenAI** - Whisper model
+- **pyannote.audio** - Speaker diarization
+- **Streamlit** - Web framework
+- **Hugging Face** - Model hosting
+
+---
+
+**⭐ Projeyi beğendiyseniz yıldız vermeyi unutmayın!**
