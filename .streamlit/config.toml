@@ -1,0 +1,29 @@
+# JARVIS Interview - Streamlit Theme Configuration
+# Inspired by Iron Man's JARVIS AI Assistant
+
+[theme]
+# Primary color (buttons, links, highlights)
+primaryColor = "#0A84FF"        # JARVIS blue (parlak mavi)
+
+# Background color
+backgroundColor = "#0D1117"      # Dark background (koyu siyah)
+
+# Secondary background color (sidebar, etc.)
+secondaryBackgroundColor = "#161B22"  # Slightly lighter dark
+
+# Text color
+textColor = "#E6EDF3"            # Light gray (açık gri)
+
+# Font family
+font = "sans serif"              # Modern sans-serif
+
+[server]
+# Headless mode (no browser popup prompts)
+headless = true
+
+# Max upload size (500 MB for videos)
+maxUploadSize = 500
+
+[browser]
+# Auto gather usage stats
+gatherUsageStats = false

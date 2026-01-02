@@ -1,12 +1,14 @@
 @echo off
 echo ================================================
-echo     Video Mulakat Transkripsiyon - Web UI
+echo          JARVIS INTERVIEW - Web UI
+echo    AI-Powered Interview Transcription System
 echo ================================================
 echo.
-echo Starting Streamlit UI...
+echo [JARVIS] Initializing system...
+echo [JARVIS] Loading AI models...
 echo.
-echo Browser otomatik acilacak: http://localhost:8501
-echo Kapatmak icin: CTRL+C
+echo Browser: http://localhost:8501
+echo Stop: CTRL+C
 echo.
 echo ================================================
 echo.

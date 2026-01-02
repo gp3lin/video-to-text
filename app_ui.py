@@ -12,39 +12,77 @@ import json
 
 # Sayfa yapılandırması
 st.set_page_config(
-    page_title="Video Mülakat Transkripsiyon",
-    page_icon="🎥",
-    layout="wide"
+    page_title="JARVIS Interview - AI-Powered Interview Transcription",
+    page_icon="🤖",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# CSS ile özel stil
+# CSS ile özel stil - JARVIS Theme
 st.markdown("""
 <style>
+    /* JARVIS Header */
     .main-header {
-        font-size: 2.5rem;
-        color: #1f77b4;
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #0A84FF 0%, #00D9FF 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         text-align: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        letter-spacing: 2px;
     }
+
+    .subtitle {
+        text-align: center;
+        color: #8B949E;
+        font-size: 1.1rem;
+        margin-bottom: 2rem;
+        font-style: italic;
+    }
+
+    /* Custom boxes */
     .success-box {
         padding: 1rem;
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 5px;
-        color: #155724;
+        background: linear-gradient(135deg, #0A84FF15 0%, #00D9FF15 100%);
+        border-left: 4px solid #0A84FF;
+        border-radius: 8px;
+        color: #E6EDF3;
     }
+
     .info-box {
         padding: 1rem;
-        background-color: #d1ecf1;
-        border: 1px solid #bee5eb;
-        border-radius: 5px;
-        color: #0c5460;
+        background: linear-gradient(135deg, #7B68EE15 0%, #B794F615 100%);
+        border-left: 4px solid #7B68EE;
+        border-radius: 8px;
+        color: #E6EDF3;
+    }
+
+    .warning-box {
+        padding: 1rem;
+        background: linear-gradient(135deg, #FFD70015 0%, #FFA50015 100%);
+        border-left: 4px solid #FFD700;
+        border-radius: 8px;
+        color: #E6EDF3;
+    }
+
+    /* Glow effect for buttons */
+    .stButton>button {
+        box-shadow: 0 0 20px rgba(10, 132, 255, 0.3);
+        transition: all 0.3s ease;
+    }
+
+    .stButton>button:hover {
+        box-shadow: 0 0 30px rgba(10, 132, 255, 0.6);
+        transform: translateY(-2px);
     }
 </style>
 """, unsafe_allow_html=True)
 
-# Başlık
-st.markdown('<h1 class="main-header">🎥 Video Mülakat Transkripsiyon</h1>', unsafe_allow_html=True)
+# Başlık - JARVIS Theme
+st.markdown('<h1 class="main-header">🤖 JARVIS INTERVIEW</h1>', unsafe_allow_html=True)
+st.markdown('<p class="subtitle">"Just A Rather Very Intelligent System" - AI-Powered Interview Transcription</p>', unsafe_allow_html=True)
 
 # Sidebar - Ayarlar
 st.sidebar.header("⚙️ Ayarlar")
@@ -282,11 +320,36 @@ if st.button("🚀 İşleme Başla", type="primary", use_container_width=True):
             if questions_path and questions_path.exists():
                 questions_path.unlink()
 
-# Alt bilgi
+# Alt bilgi - JARVIS Theme
 st.markdown("---")
 st.markdown("""
-<div style='text-align: center; color: #666;'>
-    <p>Video-to-Text v2.1.0 | Powered by faster-whisper + pyannote.audio</p>
-    <p>🚀 <a href="https://github.com/gp3lin/video-to-text" target="_blank">GitHub</a></p>
+<div style='text-align: center; color: #8B949E; padding: 2rem 0;'>
+    <p style='font-size: 1.1rem; margin-bottom: 0.5rem;'>
+        <strong style='background: linear-gradient(135deg, #0A84FF 0%, #00D9FF 100%);
+                       -webkit-background-clip: text;
+                       -webkit-text-fill-color: transparent;'>
+            JARVIS INTERVIEW
+        </strong> v2.1.0
+    </p>
+    <p style='font-size: 0.9rem; margin-bottom: 1rem;'>
+        Powered by <span style='color: #0A84FF;'>faster-whisper</span> +
+        <span style='color: #0A84FF;'>pyannote.audio</span> +
+        <span style='color: #0A84FF;'>Streamlit</span>
+    </p>
+    <p>
+        <a href="https://github.com/gp3lin/video-to-text"
+           target="_blank"
+           style='color: #0A84FF; text-decoration: none; font-weight: 500;'>
+            🚀 GitHub
+        </a> |
+        <a href="https://github.com/gp3lin"
+           target="_blank"
+           style='color: #0A84FF; text-decoration: none; font-weight: 500;'>
+            👩‍💻 Pelin
+        </a>
+    </p>
+    <p style='font-size: 0.8rem; color: #6E7681; margin-top: 1rem;'>
+        "I am JARVIS. I am here to help you analyze interviews."
+    </p>
 </div>
 """, unsafe_allow_html=True)
