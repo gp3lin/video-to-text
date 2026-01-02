@@ -114,9 +114,7 @@ def process_video(
     num_speakers: int = None,
     output_path: Path = None,
     export_text: bool = True,
-    analyze: bool = False,
-    ai_model: str = 'qwen3:4b',
-    analyses: list = None
+    questions_path: Path = None
 ) -> dict:
     """
     Video dosyasını işle (ana pipeline).
@@ -128,9 +126,7 @@ def process_video(
         num_speakers: Konuşmacı sayısı (opsiyonel)
         output_path: Çıktı JSON dosyası yolu
         export_text: Text dosyası da oluştur mu?
-        analyze: AI analizi yap mı? (Faz 3)
-        ai_model: Ollama model adı (Faz 3)
-        analyses: Hangi analizler yapılacak (Faz 3)
+        questions_path: Soru dosyası yolu (opsiyonel, QA matching için)
 
     Returns:
         dict: İşlem sonucu
@@ -138,7 +134,7 @@ def process_video(
     Raises:
         Exception: İşlem hatası
     """
-    total_steps = 5 if analyze else 4
+    total_steps = 4
     start_time = time.time()
 
     # ADIM 1: Video Validasyonu ve Ses Çıkarma
@@ -223,53 +219,6 @@ def process_video(
         }
     )
 
-    # ADIM 5: AI Analizi (Opsiyonel - Faz 3)
-    if analyze:
-        print_progress(5, total_steps, "AI analizi yapiliyor (Ollama)...")
-        logger.info("AI analizi basliyor...")
-
-        try:
-            from app.analyzer import InterviewAnalyzer
-
-            # Analyzer oluştur
-            analyzer = InterviewAnalyzer(
-                model_name=ai_model,
-                temperature=0.3,
-                enabled_analyses=analyses if analyses else ['evaluation', 'summary', 'sentiment', 'qa']
-            )
-
-            # Hangi analizler çalışacak?
-            if 'all' in analyses:
-                analyses_to_run = ['evaluation', 'summary', 'sentiment', 'qa']
-            else:
-                analyses_to_run = analyses
-
-            logger.info(f"Analizler: {', '.join(analyses_to_run)}")
-
-            # Analizi çalıştır
-            analysis_result = analyzer.analyze(result, analysis_types=analyses_to_run)
-
-            # Sonucu result'a ekle
-            result['analysis'] = analysis_result
-
-            logger.success(f"AI analizi tamamlandi: {analysis_result['metadata']['status']}")
-
-            # Markdown rapor oluştur
-            try:
-                from app.report_generator import ReportGenerator
-
-                report_path = output_path.with_suffix('.md') if output_path else settings.OUTPUT_DIR / f"{video_path.stem}_report.md"
-                ReportGenerator.create_report(result, report_path)
-                logger.success(f"Markdown rapor olusturuldu: {report_path}")
-
-            except Exception as rep_error:
-                logger.error(f"Rapor olusturulamadi: {rep_error}")
-
-        except Exception as e:
-            logger.error(f"AI analizi basarisiz: {e}")
-            logger.warning("Analiz olmadan devam ediliyor...")
-            # Analiz başarısız olsa bile devam et
-
     # JSON kaydet
     if output_path is None:
         output_path = settings.OUTPUT_DIR / f"{video_path.stem}_output.json"
@@ -281,6 +230,42 @@ def process_video(
     if export_text:
         text_path = output_path.with_suffix('.txt')
         OutputFormatter.export_to_text(result, text_path)
+
+    # QA Matching (Opsiyonel)
+    qa_json_path = None
+    qa_md_path = None
+    if questions_path is not None:
+        print_progress(5, 5, "Soru-cevap eşleştirme yapılıyor...")
+        logger.info("QA matching başlıyor...")
+
+        try:
+            from app.qa_matcher import QAMatcher
+
+            matcher = QAMatcher()
+            questions = matcher.load_questions(questions_path)
+            logger.info(f"{len(questions)} soru yüklendi")
+
+            qa_data = matcher.create_qa_pairs(questions, result)
+
+            # JSON kaydet
+            qa_json_path = output_path.with_name(f"{output_path.stem}_qa.json")
+            matcher.save_to_json(qa_data, qa_json_path)
+            logger.success(f"QA JSON: {qa_json_path}")
+
+            # Markdown kaydet
+            qa_md_path = output_path.with_name(f"{output_path.stem}_qa.md")
+            matcher.save_to_markdown(qa_data, qa_md_path)
+            logger.success(f"QA Markdown: {qa_md_path}")
+
+        except FileNotFoundError as e:
+            logger.error(f"Questions dosyası bulunamadı: {e}")
+            logger.warning("QA matching atlanıyor...")
+        except ValueError as e:
+            logger.error(f"Questions dosyası geçersiz: {e}")
+            logger.warning("QA matching atlanıyor...")
+        except Exception as e:
+            logger.error(f"QA matching hatası: {e}")
+            logger.warning("QA matching atlanıyor...")
 
     # Geçici ses dosyasını temizle
     if settings.TEMP_FILE_CLEANUP and audio_path.exists():
@@ -294,6 +279,8 @@ def process_video(
         "success": True,
         "json_path": json_path,
         "text_path": text_path,
+        "qa_json_path": qa_json_path,
+        "qa_md_path": qa_md_path,
         "num_speakers": len(result['speakers']),
         "num_segments": len(result['timeline']),
         "elapsed_time": elapsed_time,
@@ -346,6 +333,10 @@ def print_summary(process_result: dict):
     print(f"  • JSON: {process_result['json_path']}")
     if process_result['text_path']:
         print(f"  • Text: {process_result['text_path']}")
+    if process_result.get('qa_json_path'):
+        print(f"  • QA JSON: {process_result['qa_json_path']}")
+    if process_result.get('qa_md_path'):
+        print(f"  • QA Markdown: {process_result['qa_md_path']}")
 
     print("\n" + "="*70)
 
@@ -361,7 +352,8 @@ def main():
   %(prog)s video.mp4
   %(prog)s video.mp4 --model medium --language tr
   %(prog)s video.mp4 --num-speakers 2 --output sonuc.json
-  %(prog)s video.mp4 --model large --verbose
+  %(prog)s video.mp4 --questions questions.txt
+  %(prog)s video.mp4 --model large --questions questions.txt --verbose
 
 Desteklenen formatlar:
   Video: .mp4, .avi, .mov, .mkv, .webm
@@ -373,6 +365,11 @@ Model boyutları (faster-whisper):
   medium        - 769 MB  (iyi doğruluk)
   large-v3      - 1550 MB (en iyi doğruluk, yavaş)
   large-v3-turbo- 809 MB  (en iyi doğruluk/hız dengesi) [ÖNERİLEN]
+
+QA Matching (Soru-Cevap Eşleştirme):
+  questions.txt formatı: Her satırda bir soru
+  Eşleştirme metodu: Eşit zaman segmentasyonu (video_duration / num_questions)
+  Çıktılar: {video_name}_qa.json ve {video_name}_qa.md
         """
     )
 
@@ -419,46 +416,22 @@ Model boyutları (faster-whisper):
     )
 
     parser.add_argument(
+        '--questions',
+        type=str,
+        default=None,
+        help='Soru dosyası yolu (opsiyonel, .txt formatında her satırda bir soru)'
+    )
+
+    parser.add_argument(
         '--verbose', '-v',
         action='store_true',
         help='Detaylı log çıktısı (DEBUG seviyesi)'
     )
 
-    # AI Analizi argümanları (Faz 3)
-    analysis_group = parser.add_argument_group('AI Analizi (Ollama - Opsiyonel)')
-
-    analysis_group.add_argument(
-        '--analyze',
-        action='store_true',
-        help='AI analizi yap (Ollama qwen3:4b gerektirir)'
-    )
-
-    analysis_group.add_argument(
-        '--ai-model',
-        type=str,
-        default='qwen3:4b',
-        help='Ollama model adı (default: qwen3:4b)'
-    )
-
-    analysis_group.add_argument(
-        '--analyses',
-        nargs='+',
-        choices=['all', 'summary', 'sentiment', 'qa', 'evaluation'],
-        default=['all'],
-        help='Yapılacak analiz tipleri (default: all)'
-    )
-
-    analysis_group.add_argument(
-        '--skip-analysis',
-        nargs='+',
-        choices=['summary', 'sentiment', 'qa', 'evaluation'],
-        help='Atlanacak analiz tipleri'
-    )
-
     parser.add_argument(
         '--version',
         action='version',
-        version='%(prog)s 2.0.0 (Faz 3 - AI Analysis)'
+        version='%(prog)s 2.1.0 (Question-Answer Matching)'
     )
 
     # Argümanları parse et
@@ -481,11 +454,6 @@ Model boyutları (faster-whisper):
     output_path = Path(args.output) if args.output else None
 
     try:
-        # Analiz tiplerini belirle
-        analyses_to_run = args.analyses
-        if args.skip_analysis:
-            analyses_to_run = [a for a in analyses_to_run if a not in args.skip_analysis]
-
         # Video işle
         result = process_video(
             video_path=video_path,
@@ -494,9 +462,7 @@ Model boyutları (faster-whisper):
             num_speakers=args.num_speakers,
             output_path=output_path,
             export_text=not args.no_text,
-            analyze=args.analyze,
-            ai_model=args.ai_model,
-            analyses=analyses_to_run
+            questions_path=Path(args.questions) if args.questions else None
         )
 
         # Özet göster
