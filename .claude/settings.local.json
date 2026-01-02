@@ -25,7 +25,8 @@
       "Bash(venv/Scripts/pip:*)",
       "Bash(findstr:*)",
       "WebSearch",
-      "Bash(ollama list:*)"
+      "Bash(ollama list:*)",
+      "Bash(venv/Scripts/streamlit --version)"
     ],
     "deny": [],
     "ask": []
