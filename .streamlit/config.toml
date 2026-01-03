@@ -1,18 +1,18 @@
-# JARVIS Interview - Streamlit Theme Configuration
-# Inspired by Iron Man's JARVIS AI Assistant
+# B-LΞXIS - Streamlit Theme Configuration
+# Lexical Intelligence - Pink/Purple Light Theme
 
 [theme]
 # Primary color (buttons, links, highlights)
-primaryColor = "#0A84FF"        # JARVIS blue (parlak mavi)
+primaryColor = "#9D4EDD"        # Medium purple (ana mor)
 
 # Background color
-backgroundColor = "#0D1117"      # Dark background (koyu siyah)
+backgroundColor = "#FAF9FC"      # Light purple-tinted white (beyazımsı mor tonlu)
 
 # Secondary background color (sidebar, etc.)
-secondaryBackgroundColor = "#161B22"  # Slightly lighter dark
+secondaryBackgroundColor = "#F5F0FA"  # Lighter purple (açık mor)
 
 # Text color
-textColor = "#E6EDF3"            # Light gray (açık gri)
+textColor = "#2D2D2D"            # Dark gray/black (koyu gri)
 
 # Font family
 font = "sans serif"              # Modern sans-serif

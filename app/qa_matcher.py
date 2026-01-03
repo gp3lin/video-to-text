@@ -163,8 +163,13 @@ class QAMatcher:
         segments_in_range = []
 
         for segment in timeline:
-            seg_start = segment['start']
-            seg_end = segment['end']
+            seg_start = segment.get('start')
+            seg_end = segment.get('end')
+
+            # Skip segments with missing time information
+            if seg_start is None or seg_end is None:
+                logger.warning(f"Skipping segment with missing time info: {segment.get('text', '')[:50]}...")
+                continue
 
             # Check if segment overlaps with range
             if seg_start < end and seg_end > start:

@@ -74,11 +74,11 @@ WHISPER_LANGUAGE = os.getenv("LANGUAGE", "tr")
 # Dil belirtmek Whisper'ın doğruluğunu artırır
 
 # faster-whisper Optimizasyon Ayarları
-WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
+WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "auto")
 # Device: "cpu", "cuda", "auto"
 # CUDA varsa GPU kullanmak için "cuda" veya "auto"
 
-WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "int8")
+WHISPER_COMPUTE_TYPE = os.getenv("WHISPER_COMPUTE_TYPE", "float16")
 # Compute type: "float32", "float16", "int8", "int8_float16"
 # CPU için: "int8" (önerilen - 2x hızlı)
 # GPU için: "float16" veya "int8_float16" (önerilen)

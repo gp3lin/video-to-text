@@ -377,34 +377,25 @@ class OutputFormatter:
             f.write(f"İşlenme Zamanı: {metadata['processed_at']}\n")
             f.write("\n" + "="*60 + "\n\n")
 
-            # Timeline
-            f.write("ZAMAN ÇİZELGESİ\n")
-            f.write("="*60 + "\n\n")
-
-            for seg in result["timeline"]:
-                f.write(
-                    f"[{seg['start']:.2f}s - {seg['end']:.2f}s] "
-                    f"{seg['speaker']}:\n"
-                    f"  {seg['text']}\n\n"
-                )
-
-            # Konuşmacı istatistikleri
-            f.write("\n" + "="*60 + "\n")
-            f.write("KONUŞMACI İSTATİSTİKLERİ\n")
+            # Konuşmacı Paragrafları
+            f.write("TRANSKRİPT (PARAGRAF FORMATINDA)\n")
             f.write("="*60 + "\n\n")
 
             for speaker, data in result["speakers"].items():
-                f.write(f"{speaker}:\n")
-                f.write(f"  Toplam Süre: {data['total_duration']}s\n")
-                f.write(f"  Kelime Sayısı: {data['total_words']}\n")
-                f.write(f"  Segment Sayısı: {data['num_segments']}\n")
-                f.write(f"  Yüzde: %{data['percentage']}\n\n")
+                f.write(f"{speaker}\n")
+                f.write("-" * 60 + "\n")
+                f.write(f"Konuşma Süresi: {data['total_duration']:.1f}s ({data['percentage']:.1f}%) | ")
+                f.write(f"Kelime Sayısı: {data['total_words']}\n\n")
 
-            # Tam metin
-            f.write("\n" + "="*60 + "\n")
-            f.write("TAM METİN\n")
-            f.write("="*60 + "\n\n")
-            f.write(result["full_transcript"])
+                # Konuşmacının tüm metni paragraf olarak
+                speaker_segments = data.get('segments', [])
+                if speaker_segments:
+                    full_text = " ".join(seg['text'] for seg in speaker_segments)
+                    f.write(full_text + "\n\n")
+                else:
+                    f.write("(Bu konuşmacı için metin bulunamadı)\n\n")
+
+                f.write("="*60 + "\n\n")
 
         logger.success(f"Text dosyası oluşturuldu: {output_path}")
         return output_path

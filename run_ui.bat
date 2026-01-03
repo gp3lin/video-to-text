@@ -1,11 +1,11 @@
 @echo off
 echo ================================================
-echo          JARVIS INTERVIEW - Web UI
-echo    AI-Powered Interview Transcription System
+echo             B-LEXIS - Web UI
+echo      Lexical Intelligence System
 echo ================================================
 echo.
-echo [JARVIS] Initializing system...
-echo [JARVIS] Loading AI models...
+echo [B-LEXIS] Initializing lexical engine...
+echo [B-LEXIS] Loading AI models...
 echo.
 echo Browser: http://localhost:8501
 echo Stop: CTRL+C

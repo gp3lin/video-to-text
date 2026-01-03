@@ -134,6 +134,9 @@ def process_video(
     Raises:
         Exception: İşlem hatası
     """
+    # Logging sistemini kur (UI'dan çağrılırsa)
+    setup_logging(verbose=False)
+
     total_steps = 4
     start_time = time.time()
 
@@ -158,8 +161,8 @@ def process_video(
     transcriber = Transcriber(
         model_size=model_size,
         language=language if language else "tr",  # Varsayılan: Türkçe
-        device=settings.WHISPER_DEVICE,
-        compute_type=settings.WHISPER_COMPUTE_TYPE
+        device="cuda",  # GPU kullan (hardcoded)
+        compute_type="float16"  # GPU optimizasyonu (hardcoded)
     )
     transcriber.load_model()
 
@@ -195,7 +198,7 @@ def process_video(
     # sırasında ayarlanmalı (gelecek güncellemede eklenecek).
     diarization = diarizer.diarize(
         audio_path,
-        num_speakers=num_speakers if num_speakers > 0 else None,
+        num_speakers=num_speakers if (num_speakers is not None and num_speakers > 0) else None,
         min_duration=0.5  # Minimum segment süresi (gürültü filtreleme)
         # Diğer parametreler şimdilik kullanılmıyor (pyannote 3.1 limitasyonu)
     )
@@ -265,6 +268,7 @@ def process_video(
             logger.warning("QA matching atlanıyor...")
         except Exception as e:
             logger.error(f"QA matching hatası: {e}")
+            logger.exception(e)  # Full traceback
             logger.warning("QA matching atlanıyor...")
 
     # Geçici ses dosyasını temizle
