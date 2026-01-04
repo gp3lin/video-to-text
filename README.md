@@ -138,7 +138,6 @@ pip install -r requirements.txt
    ```
 
 ---
-
 ## 💻 Kullanım
 
 ### 🎨 Web Arayüzü (Önerilen)
