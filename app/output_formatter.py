@@ -68,6 +68,12 @@ class OutputFormatter:
         # Transcription segmentlerini al
         trans_segments = transcription.get("segments", [])
 
+        # Diarization var mı kontrol et
+        has_diarization = diarization is not None and len(diarization) > 0
+
+        if not has_diarization:
+            logger.warning("Diarization sonucu yok, tüm segmentler 'SPEAKER_00' olarak işaretlenecek")
+
         # Her transcription segmentine konuşmacı ata
         merged_segments = []
 
@@ -76,13 +82,17 @@ class OutputFormatter:
             trans_start = trans_seg["start"]
             trans_end = trans_seg["end"]
 
-            # Bu zaman aralığında hangi konuşmacı(lar) konuşuyor?
-            # find_speaker_at_time() ile en uygun konuşmacıyı bul
-            speaker = OutputFormatter._find_speaker_for_segment(
-                trans_start,
-                trans_end,
-                diarization
-            )
+            # Konuşmacı ata
+            if has_diarization:
+                # Bu zaman aralığında hangi konuşmacı(lar) konuşuyor?
+                speaker = OutputFormatter._find_speaker_for_segment(
+                    trans_start,
+                    trans_end,
+                    diarization
+                )
+            else:
+                # Diarization yok, hepsini SPEAKER_00 yap
+                speaker = "SPEAKER_00"
 
             # Birleştirilmiş segment oluştur
             merged_segments.append({
@@ -95,7 +105,7 @@ class OutputFormatter:
             })
 
         # Konuşmacılara göre grupla
-        speakers_data = OutputFormatter._group_by_speaker(merged_segments, diarization)
+        speakers_data = OutputFormatter._group_by_speaker(merged_segments, diarization if has_diarization else None)
 
         # Toplam süre
         total_duration = merged_segments[-1]["end"] if merged_segments else 0
@@ -109,8 +119,8 @@ class OutputFormatter:
             "num_segments": len(merged_segments),
             "processed_at": datetime.now().isoformat(),
             "model_info": {
-                "transcription": "OpenAI Whisper",
-                "diarization": "pyannote.audio 3.1"
+                "transcription": "faster-whisper (OpenAI Whisper)",
+                "diarization": "pyannote.audio 3.1" if has_diarization else "Disabled (Token-free mode)"
             }
         }
 
@@ -224,14 +234,16 @@ class OutputFormatter:
         speakers = {}
         total_duration = merged_segments[-1]["end"] if merged_segments else 0
 
-        # Her konuşmacıyı initialize et
-        for dia_seg in diarization:
-            speaker = dia_seg["speaker"]
-            if speaker not in speakers:
-                speakers[speaker] = {
-                    "total_duration": 0,
-                    "total_words": 0,
-                    "num_segments": 0,
+        # Diarization varsa initialize et
+        if diarization is not None:
+            # Her konuşmacıyı initialize et
+            for dia_seg in diarization:
+                speaker = dia_seg["speaker"]
+                if speaker not in speakers:
+                    speakers[speaker] = {
+                        "total_duration": 0,
+                        "total_words": 0,
+                        "num_segments": 0,
                     "segments": []
                 }
 

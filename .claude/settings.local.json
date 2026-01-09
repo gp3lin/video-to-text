@@ -26,7 +26,13 @@
       "Bash(findstr:*)",
       "WebSearch",
       "Bash(ollama list:*)",
-      "Bash(venv/Scripts/streamlit --version)"
+      "Bash(venv/Scripts/streamlit --version)",
+      "Bash(call venvScriptsactivate.bat)",
+      "Bash(streamlit run:*)",
+      "Bash(venv/Scripts/streamlit run:*)",
+      "Bash(venvScriptsstreamlit run app_ui.py)",
+      "Bash(timeout /t 3 /nobreak)",
+      "Bash(venvScriptspython test_token_free.py)"
     ],
     "deny": [],
     "ask": []

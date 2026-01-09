@@ -6,10 +6,10 @@ pydub
 # openai-whisper  # Yavaş - faster-whisper ile değiştirildi
 faster-whisper  # 4-5x daha hızlı, aynı doğruluk
 
-# Speaker Diarization
-pyannote.audio
-torch
-torchaudio
+# Speaker Diarization - KALDIRILDI
+# pyannote.audio  # KALDIRILDI: Token gerektirdiği için kaldırıldı
+# torch           # KALDIRILDI: Sadece pyannote için gerekliydi
+# torchaudio      # KALDIRILDI: Sadece pyannote için gerekliydi
 
 # Web Arayüzü
 streamlit

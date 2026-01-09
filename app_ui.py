@@ -15,7 +15,7 @@ st.set_page_config(
     page_title="B-LΞXIS - Lexical Intelligence System",
     page_icon="🗣️",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"  # Sidebar kapalı (ayarlar kaldırıldı)
 )
 
 # CSS ile özel stil - B-LΞXIS Lexical Theme (Pink/Purple Cyberpunk)
@@ -111,34 +111,10 @@ st.markdown("""
 st.markdown('<h1 class="main-header">🗣️ B-LΞXIS</h1>', unsafe_allow_html=True)
 st.markdown('<p class="subtitle">"Lexical Intelligence - Transforming speech into structured knowledge"</p>', unsafe_allow_html=True)
 
-# Sidebar - Ayarlar
-st.sidebar.header("⚙️ Ayarlar")
-
-# Model seçimi
-model_size = st.sidebar.selectbox(
-    "Whisper Model Boyutu",
-    ["large-v3-turbo", "medium", "small", "base", "tiny"],
-    index=0,
-    help="large-v3-turbo: En iyi doğruluk/hız dengesi (önerilen)"
-)
-
-# Dil seçimi
-language = st.sidebar.selectbox(
-    "Dil",
-    [("Otomatik", None), ("Türkçe", "tr"), ("İngilizce", "en")],
-    format_func=lambda x: x[0],
-    index=1
-)[1]
-
-# Text export
-export_text = st.sidebar.checkbox("Text dosyası oluştur", value=True)
-
-st.sidebar.markdown("---")
-st.sidebar.markdown("""
-**Desteklenen Formatlar:**
-- Video: MP4, AVI, MOV, MKV, WEBM
-- Questions: TXT (her satırda bir soru)
-""")
+# Sabit ayarlar (UI'dan çıkarıldı)
+model_size = "large-v3-turbo"  # En iyi doğruluk/hız dengesi
+language = "tr"  # Türkçe
+export_text = True  # Her zaman text dosyası oluştur
 
 # Ana içerik
 col1, col2 = st.columns([2, 1])
@@ -222,7 +198,6 @@ if st.button("🚀 İşleme Başla", type="primary", use_container_width=True):
                 video_path=video_path,
                 model_size=model_size,
                 language=language,
-                num_speakers=None,  # Otomatik tespit
                 output_path=output_path,
                 export_text=export_text,
                 questions_path=questions_path
@@ -366,7 +341,6 @@ st.markdown("""
     </p>
     <p style='font-size: 0.9rem; margin-bottom: 1rem;'>
         Powered by <span style='color: #9D4EDD;'>faster-whisper</span> +
-        <span style='color: #C77DFF;'>pyannote.audio</span> +
         <span style='color: #FF006E;'>Streamlit</span>
     </p>
     <p style='font-size: 0.8rem; color: #C77DFF; margin-top: 1rem;'>

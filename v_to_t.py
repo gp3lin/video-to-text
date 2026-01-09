@@ -23,7 +23,7 @@ from app.video_processor import (
     get_audio_duration
 )
 from app.transcriber import Transcriber
-from app.diarizer import SpeakerDiarizer
+# from app.diarizer import SpeakerDiarizer  # KALDIRILDI: pyannote.audio kullanılmıyor
 from app.output_formatter import OutputFormatter
 import config.settings as settings
 
@@ -111,7 +111,6 @@ def process_video(
     video_path: Path,
     model_size: str,
     language: str,
-    num_speakers: int = None,
     output_path: Path = None,
     export_text: bool = True,
     questions_path: Path = None
@@ -119,11 +118,12 @@ def process_video(
     """
     Video dosyasını işle (ana pipeline).
 
+    NOT: Konuşmacı ayırma (diarization) devre dışı - sadece transkripsiyon yapılır.
+
     Args:
         video_path: Video dosyası yolu
         model_size: Whisper model boyutu
         language: Dil kodu (tr, en)
-        num_speakers: Konuşmacı sayısı (opsiyonel)
         output_path: Çıktı JSON dosyası yolu
         export_text: Text dosyası da oluştur mu?
         questions_path: Soru dosyası yolu (opsiyonel, QA matching için)
@@ -182,30 +182,11 @@ def process_video(
     word_count = len(transcription['text'].split())
     logger.success(f"Transcription tamamlandı: {word_count} kelime")
 
-    # ADIM 3: Konuşmacı Ayırma (Speaker Diarization)
-    print_progress(3, total_steps, "Konuşmacılar ayırılıyor (gelişmiş parametrelerle)...")
-    logger.info("Speaker diarization başlıyor (optimized parameters)...")
-
-    diarizer = SpeakerDiarizer()
-    diarizer.load_model()
-
-    # Gelişmiş diarization parametreleri:
-    # - min_duration=0.5: Çok kısa segment'leri filtrele (gürültü azaltma) ✅ ÇALIŞIYOR
-    # - Segment birleştirme: Yakın segment'leri birleştir (max_gap=0.5s) ✅ ÇALIŞIYOR
-    #
-    # NOT: Diğer parametreler (onset, offset, clustering vb.) pyannote 3.1 tarafından
-    # apply() metodunda desteklenmiyor. Bu parametreler pipeline instantiation
-    # sırasında ayarlanmalı (gelecek güncellemede eklenecek).
-    diarization = diarizer.diarize(
-        audio_path,
-        num_speakers=num_speakers if (num_speakers is not None and num_speakers > 0) else None,
-        min_duration=0.5  # Minimum segment süresi (gürültü filtreleme)
-        # Diğer parametreler şimdilik kullanılmıyor (pyannote 3.1 limitasyonu)
-    )
-
-    # İstatistik
-    speakers = set(seg['speaker'] for seg in diarization)
-    logger.success(f"Diarization tamamlandı: {len(speakers)} konuşmacı tespit edildi")
+    # ADIM 3: Konuşmacı Ayırma - KALDIRILDI
+    # pyannote.audio artık kullanılmıyor, sadece transkripsiyon yapılıyor
+    diarization = None
+    print_progress(3, total_steps, "Konuşmacı ayırma devre dışı (sadece transkripsiyon)...")
+    logger.info("Konuşmacı ayırma devre dışı - pyannote.audio kullanılmıyor")
 
     # ADIM 4: Sonuçları Birleştir ve Kaydet
     print_progress(4, total_steps, "Sonuçlar birleştiriliyor ve kaydediliyor...")
@@ -401,13 +382,6 @@ QA Matching (Soru-Cevap Eşleştirme):
     )
 
     parser.add_argument(
-        '--num-speakers',
-        type=int,
-        default=0,
-        help='Konuşmacı sayısı (0=otomatik tespit) (default: 0)'
-    )
-
-    parser.add_argument(
         '--output', '-o',
         type=str,
         help='Çıktı JSON dosyası yolu (default: outputs/<video>_output.json)'
@@ -463,7 +437,6 @@ QA Matching (Soru-Cevap Eşleştirme):
             video_path=video_path,
             model_size=args.model,
             language=args.language,
-            num_speakers=args.num_speakers,
             output_path=output_path,
             export_text=not args.no_text,
             questions_path=Path(args.questions) if args.questions else None

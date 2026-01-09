@@ -28,7 +28,7 @@ Video mülakatlardan konuşmaları metne çeviren ve soruları cevaplarla eşle�
   - 4-5x daha hızlı
 - **Model:** large-v3-turbo (809 MB, en iyi doğruluk/hız dengesi)
 - **Dil Desteği:** 99 dil (Türkçe, İngilizce, otomatik algılama)
-- **Doğruluk:** %95+ (Türkçe için)
+- **Doğruluk:** %85+ (Türkçe için)
 
 ### 👥 Konuşmacı Ayırma
 - **pyannote.audio 3.1** ile speaker diarization
@@ -410,35 +410,10 @@ python test_qa_matcher.py
 
 ---
 
-## 🤝 Katkıda Bulunma
-
-Katkılar memnuniyetle karşılanır!
-
-1. Fork edin
-2. Feature branch oluşturun (`git checkout -b feature/amazing-feature`)
-3. Commit edin (`git commit -m 'feat: Add amazing feature'`)
-4. Push edin (`git push origin feature/amazing-feature`)
-5. Pull Request açın
-
----
-
 ## 📝 Lisans
 
 MIT License - Detaylar için [LICENSE](LICENSE) dosyasına bakın.
 
----
-
-## 🐛 Sorun Bildirme
-
-Sorunlar için [GitHub Issues](https://github.com/gp3lin/video-to-text/issues) kullanın.
-
----
-
-## 📧 İletişim
-
-**Proje Sahibi:** Pelin ([@gp3lin](https://github.com/gp3lin))
-
-**Repository:** https://github.com/gp3lin/video-to-text
 
 ---
 
